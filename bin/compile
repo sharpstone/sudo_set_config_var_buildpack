@@ -1,0 +1,35 @@
+#! /usr/bin/env ruby
+
+require 'pathname'
+require 'fileutils'
+
+BUILD_DIR = Pathname.new(ARGV[0])
+
+check_script = Pathname.new(__FILE__).join("../../lib/check_script.rb")
+out = `ruby #{check_script}`
+raise "Check script failed:\n#{out}" unless $?.success?
+puts out
+
+vendor_file = BUILD_DIR.join("bin", "check_paths")
+vendor_file.dirname.mkpath
+
+FileUtils.mv(check_script, vendor_file)
+
+puts "-----> Updating release script in procfile"
+procfile = BUILD_DIR.join("Procfile")
+if procfile.file?
+  contents = +""
+  procfile.each_line do |line|
+    if line.start_with?("release")
+      contents << "#{line.chomp} && ruby bin/check_paths\n"
+    else
+      contents << line
+    end
+  end
+
+  procfile.write(contents)
+else
+  procfile.write("release: ruby bin/check_paths\n")
+end
+
+exit(0)

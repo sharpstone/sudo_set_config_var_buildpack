@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+echo "I check that all paths are absolute"
+exit 0
