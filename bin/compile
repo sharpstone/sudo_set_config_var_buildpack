@@ -1,4 +1,4 @@
-#! /usr/bin/env ruby
+#!/usr/bin/env ruby
 
 require 'pathname'
 require 'fileutils'
@@ -17,10 +17,14 @@ FileUtils.mv(check_script, vendor_file)
 
 puts "-----> Updating release script in procfile"
 procfile = BUILD_DIR.join("Procfile")
+
+procfile_written = false
+
 if procfile.file?
-  contents = +""
+  contents = String.new("")
   procfile.each_line do |line|
     if line.start_with?("release")
+      procfile_written = true
       contents << "#{line.chomp} && ruby bin/check_paths\n"
     else
       contents << line
@@ -28,8 +32,8 @@ if procfile.file?
   end
 
   procfile.write(contents)
-else
-  procfile.write("release: ruby bin/check_paths\n")
 end
+
+procfile.write("release: ruby bin/check_paths\n") unless procfile_written
 
 exit(0)
