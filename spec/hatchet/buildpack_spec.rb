@@ -9,13 +9,13 @@ RSpec.describe "This buildpack" do
 
 
         # Test export
-        echo "PATH=/good/absolute/path:$PATH" >> export
+        echo "export PATH=/good/absolute/path:$PATH" >> export
 
         # Test .profile.d
         BUILD_DIR=$1
         mkdir -p $BUILD_DIR/.profile.d
 
-        echo "PATH=/good/absolute/path:$PATH" >> $BUILD_DIR/.profile.d/my.sh
+        echo "export PATH=/good/absolute/path:$PATH" >> $BUILD_DIR/.profile.d/my.sh
       EOM
     )
 
@@ -36,7 +36,7 @@ RSpec.describe "This buildpack" do
         compile_script: <<~EOM
           #!/usr/bin/env bash
 
-          echo "PATH=bad_export_path_because_im_relative:$PATH" >> export
+          echo "export PATH=bad_export_path_because_im_relative:$PATH" >> export
         EOM
       )
 
@@ -61,7 +61,7 @@ RSpec.describe "This buildpack" do
           BUILD_DIR=$1
           mkdir -p $BUILD_DIR/.profile.d
 
-          echo "PATH=bad_export_path_because_im_relative:$PATH" >> $BUILD_DIR/.profile.d/my.sh
+          echo "export PATH=bad_export_path_because_im_relative:$PATH" >> $BUILD_DIR/.profile.d/my.sh
         EOM
       )
 
@@ -86,7 +86,7 @@ RSpec.describe "This buildpack" do
           BUILD_DIR=$1
           mkdir -p $BUILD_DIR/.profile.d
 
-          echo "PATH=$BUILD_DIR/foo:$PATH" >> $BUILD_DIR/.profile.d/my.sh
+          echo "export PATH=$BUILD_DIR/foo:$PATH" >> $BUILD_DIR/.profile.d/my.sh
         EOM
       )
 
