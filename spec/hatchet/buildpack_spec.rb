@@ -9,13 +9,13 @@ RSpec.describe "This buildpack" do
 
 
         # Test export
-        echo "PATH=/good/absolute/path:$PATH" >> export
+        echo "export PATH=/good/absolute/path:$PATH" >> export
 
         # Test .profile.d
         BUILD_DIR=$1
         mkdir -p $BUILD_DIR/.profile.d
 
-        echo "PATH=/good/absolute/path:$PATH" >> $BUILD_DIR/.profile.d/my.sh
+        echo "export PATH=/good/absolute/path:$PATH" >> $BUILD_DIR/.profile.d/my.sh
       EOM
     )
 
@@ -36,7 +36,7 @@ RSpec.describe "This buildpack" do
         compile_script: <<~EOM
           #!/usr/bin/env bash
 
-          echo "PATH=bad_export_path_because_im_relative:$PATH" >> export
+          echo "export PATH=bad_export_path_because_im_relative:$PATH" >> export
         EOM
       )
 
@@ -61,7 +61,7 @@ RSpec.describe "This buildpack" do
           BUILD_DIR=$1
           mkdir -p $BUILD_DIR/.profile.d
 
-          echo "PATH=bad_export_path_because_im_relative:$PATH" >> $BUILD_DIR/.profile.d/my.sh
+          echo "export PATH=bad_export_path_because_im_relative:$PATH" >> $BUILD_DIR/.profile.d/my.sh
         EOM
       )
 
@@ -72,6 +72,31 @@ RSpec.describe "This buildpack" do
 
       Hatchet::Runner.new(app_dir, buildpacks: buildpacks, allow_failure: true).deploy do |app|
         expect(app.output).to include("All paths must be absolute")
+      end
+    end
+  end
+
+  describe "leaky build path detection" do
+    it "errors on leaky paths" do
+      app_dir = generate_fixture_app(
+        name: "leaky_build_path",
+        compile_script: <<~EOM
+          #!/usr/bin/env bash
+
+          BUILD_DIR=$1
+          mkdir -p $BUILD_DIR/.profile.d
+
+          echo "export PATH=$BUILD_DIR/foo:$PATH" >> $BUILD_DIR/.profile.d/my.sh
+        EOM
+      )
+
+      buildpacks = [
+        "https://github.com/heroku/heroku-buildpack-inline",
+        :default
+      ]
+
+      Hatchet::Runner.new(app_dir, buildpacks: buildpacks, allow_failure: true).deploy do |app|
+        expect(app.output).to include("A build path leaked into runtime")
       end
     end
   end
