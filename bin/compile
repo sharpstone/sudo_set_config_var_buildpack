@@ -5,21 +5,30 @@ require 'fileutils'
 
 BUILD_DIR = Pathname.new(ARGV[0])
 
+# Build time checking of PATH
 check_script = Pathname.new(__FILE__).join("../../lib/check_script.rb")
 out = `ruby #{check_script}`
 raise "Check script failed:\n#{out}" unless $?.success?
 puts out
 
+# Setting up runtime checking of PATH
 vendor_file = BUILD_DIR.join("bin", "check_paths")
 vendor_file.dirname.mkpath
-
 FileUtils.mv(check_script, vendor_file)
 
+# Record the build dir so that the release phase can check for leaky build dir in the PATH later
+profile_d_dir = BUILD_DIR.join(".profile.d")
+profile_d_dir.mkpath
+profile_d_dir.join("force_absolute_paths_buildpack.sh").write("export FORCE_ABSOLUTE_PATHS_BUILDPACK_BUILD_DIR=#{BUILD_DIR}")
+
+# We execute the check script again in relase phase which is executed in a runtime environment
+# this is accomplished by injecting code into the Procfile
 puts "-----> Updating release script in procfile"
 procfile = BUILD_DIR.join("Procfile")
 
 procfile_written = false
 
+# If a Procfile exists, and the `release:` phase is already defined, append our task to it.
 if procfile.file?
   contents = String.new("")
   procfile.each_line do |line|
