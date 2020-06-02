@@ -3,6 +3,7 @@ require "bundler/setup"
 require 'rspec/retry'
 
 ENV["HATCHET_BUILDPACK_BASE"] = "https://github.com/sharpstone/force_absolute_paths_buildpack.git"
+ENV["HATCHET_BUILDPACK_BRANCH"] = ENV["CIRCLE_BRANCH"] if ENV["CIRCLE_BRANCH"]
 
 require 'hatchet'
 require 'pathname'
