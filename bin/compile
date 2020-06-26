@@ -31,6 +31,8 @@ sudo_config_vars.each do |key, val|
   export_file_string << "#{export_string}\n"
 end
 
-Pathname.new("./export").write(export_file_string)
+File.open("./export", "w+") do |f|
+  f.puts export_file_string
+end
 
 exit(0)
