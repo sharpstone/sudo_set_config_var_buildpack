@@ -3,46 +3,34 @@
 require 'pathname'
 require 'fileutils'
 
-BUILD_DIR = Pathname.new(ARGV[0])
+# BUILD_DIR = Pathname.new(ARGV[0])
+ENV_DIR = Pathname.new(ARGV[2])
 
-# Build time checking of PATH
-check_script = Pathname.new(__FILE__).join("../../lib/check_script.rb")
-out = `ruby #{check_script}`
-raise "Check script failed:\n#{out}" unless $?.success?
-puts out
+config_vars = {}
 
-# Setting up runtime checking of PATH
-vendor_file = BUILD_DIR.join("bin", "check_paths")
-vendor_file.dirname.mkpath
-FileUtils.mv(check_script, vendor_file)
-
-# Record the build dir so that the release phase can check for leaky build dir in the PATH later
-profile_d_dir = BUILD_DIR.join(".profile.d")
-profile_d_dir.mkpath
-profile_d_dir.join("force_absolute_paths_buildpack.sh").write("export FORCE_ABSOLUTE_PATHS_BUILDPACK_BUILD_DIR=#{BUILD_DIR}")
-
-# We execute the check script again in relase phase which is executed in a runtime environment
-# this is accomplished by injecting code into the Procfile
-puts "-----> Updating release script in procfile"
-procfile = BUILD_DIR.join("Procfile")
-
-procfile_written = false
-
-# If a Procfile exists, and the `release:` phase is already defined, append our task to it.
-if procfile.file?
-  contents = String.new("")
-  procfile.each_line do |line|
-    if line.start_with?("release")
-      procfile_written = true
-      contents << "#{line.chomp} && ruby bin/check_paths\n"
-    else
-      contents << line
-    end
-  end
-
-  procfile.write(contents)
+ENV_DIR.entries.each do |entry|
+  env_file = ENV_DIR.join(entry)
+  next unless env_file.file?
+  config_vars[entry] = env_file.read
 end
 
-procfile.write("release: ruby bin/check_paths\n") unless procfile_written
+sudo_config_vars = {}
+
+config_vars.each do |key, val|
+  sudo_config_vars[key.to_s.sub(/^__SUDO_/, "")] = val if key.to_s =~ /^__SUDO_/
+end
+
+raise "No sudo env vars found. Keys must start with `__SUDO_` but none found: #{config_vars.keys.inspect}" if sudo_config_vars.empty?
+
+puts "-----> Setting private config vars to be global:"
+
+export_file_string = String.new("")
+sudo_config_vars.each do |key, val|
+  export_string = "export #{key}=#{val}"
+  puts "      #{export_string}"
+  export_file_string << "#{export_string}\n"
+end
+
+Pathname.new("./export").write(export_file_string)
 
 exit(0)

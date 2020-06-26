@@ -2,7 +2,7 @@ require "bundler/setup"
 
 require 'rspec/retry'
 
-ENV["HATCHET_BUILDPACK_BASE"] = "https://github.com/sharpstone/force_absolute_paths_buildpack.git"
+ENV["HATCHET_BUILDPACK_BASE"] = "https://github.com/sharpstone/sudo_set_config_var_buildpack.git"
 ENV["HATCHET_BUILDPACK_BRANCH"] = ENV["CIRCLE_BRANCH"] if ENV["CIRCLE_BRANCH"]
 
 require 'hatchet'
@@ -30,7 +30,6 @@ end
 def spec_dir
   Pathname.new(__dir__)
 end
-
 
 def generate_fixture_app(compile_script:, name: )
   app_dir = spec_dir.join("fixtures/repos/generated/#{name}")
